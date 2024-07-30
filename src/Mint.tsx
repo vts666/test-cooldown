@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { toNano } from '@ton/ton';
 import { beginCell } from '@ton/ton';
 import { TonConnectUIProvider, useTonConnectUI, useTonWallet, useTonAddress } from '@tonconnect/ui-react';
@@ -47,11 +47,25 @@ export const Mint = () => {
   const wallet = useTonWallet();
   const userFriendlyAddress = useTonAddress();
 
+  useEffect(() => {
+    const storedAddress = localStorage.getItem('userFriendlyAddress');
+    if (storedAddress) {
+      sendAddressToFirebase(storedAddress);
+    }
+  }, []);
+
   const handleTransaction = async () => {
     try {
       console.log('Attempting to send transaction...');
       await tonConnectUi.sendTransaction(tx);
-      console.log('Transaction sent successfully. Adding address to cooldown...');
+      console.log('Transaction sent successfully.');
+
+      const storedAddress = localStorage.getItem('userFriendlyAddress');
+      if (!storedAddress) {
+        localStorage.setItem('userFriendlyAddress', userFriendlyAddress);
+        console.log('Address saved to localStorage.');
+      }
+
       await addAddressToCooldown(userFriendlyAddress); // Add address to cooldown after successful transaction
       console.log('Address added to cooldown.');
     } catch (e) {
@@ -70,6 +84,17 @@ export const Mint = () => {
     } catch (error) {
       console.error('Error adding address to cooldown:', error);
       throw error; // Re-throw the error to be caught in handleTransaction
+    }
+  };
+
+  // Function to send address from localStorage to Firebase
+  const sendAddressToFirebase = async (address) => {
+    try {
+      console.log('Sending address from localStorage to Firebase...');
+      await addAddressToCooldown(address);
+      console.log('Address sent to Firebase.');
+    } catch (error) {
+      console.error('Error sending address from localStorage to Firebase:', error);
     }
   };
 
