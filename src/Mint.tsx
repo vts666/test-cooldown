@@ -48,26 +48,29 @@ export const Mint = () => {
   const userFriendlyAddress = useTonAddress();
 
   const handleTransaction = async () => {
-  try {
-    await tonConnectUi.sendTransaction(tx);
-    // Temporarily remove Firebase call
-      addAddressToCooldown(userFriendlyAddress); // Add address to cooldown after successful transaction
-  } catch (e) {
-    setError(e.message); // Set the error message
-  }
-};
-
+    try {
+      console.log('Attempting to send transaction...');
+      await tonConnectUi.sendTransaction(tx);
+      console.log('Transaction sent successfully. Adding address to cooldown...');
+      await addAddressToCooldown(userFriendlyAddress); // Add address to cooldown after successful transaction
+      console.log('Address added to cooldown.');
+    } catch (e) {
+      console.error('Error sending transaction or adding address to cooldown:', e);
+      setError(e.message); // Set the error message
+    }
+  };
 
   // Function to add address to Firebase
-  const addAddressToCooldown = (address) => {
-    const addressRef = ref(database, `cooldown/${address}`);
-    set(addressRef, {
-      timestamp: Date.now()
-    }).then(() => {
-      console.log('Address added to cooldown');
-    }).catch((error) => {
+  const addAddressToCooldown = async (address) => {
+    try {
+      const addressRef = ref(database, `cooldown/${address}`);
+      await set(addressRef, {
+        timestamp: Date.now()
+      });
+    } catch (error) {
       console.error('Error adding address to cooldown:', error);
-    });
+      throw error; // Re-throw the error to be caught in handleTransaction
+    }
   };
 
   return (
