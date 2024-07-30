@@ -4,7 +4,7 @@ import { beginCell } from '@ton/ton';
 import { TonConnectUIProvider, useTonConnectUI, useTonWallet, useTonAddress } from '@tonconnect/ui-react';
 import { addToCooldown, checkCooldown } from './firebaseFunctions'; // Импортируйте функции
 import styles from './Button.module.css'; // Импортируйте стили
-import { ref, set, get, database } from './firebaseConfig';
+import { ref, get, database } from './firebaseConfig';
 
 const body = beginCell()
     .storeUint(0, 32)
@@ -76,11 +76,6 @@ export const Mint: React.FC = () => {
         try {
             await tonConnectUi.sendTransaction(tx);
             await addToCooldown(userFriendlyAddress); // Добавить адрес в cooldown
-            
-            // Установка задержки в 2 секунды перед перезагрузкой страницы
-            // setTimeout(() => {
-            //     window.location.reload(); // Перезагрузить страницу после задержки
-            // }, 2000);
 
             // Обновляем состояние кнопки для отображения cooldown
             setIsCooldown(true);
@@ -100,7 +95,7 @@ export const Mint: React.FC = () => {
     return (
         <TonConnectUIProvider manifestUrl="https://tonconnect-test.vercel.app/tonconnect-manifest.json">
             <div>
-                {/* <span>{userFriendlyAddress}</span> */}
+                <span>{userFriendlyAddress}</span>
                 {wallet ? (
                     <button 
                         className={styles.button}
