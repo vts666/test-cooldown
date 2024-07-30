@@ -1,22 +1,37 @@
-// src/firebaseFunctions.ts
-import { database, ref, set, get } from './firebaseConfig';
+import { ref, set, get, database } from './firebaseConfig';
+import { DatabaseReference } from 'firebase/database';
 
-// Функция для добавления адреса в список cooldown
-export const addToCooldown = async (address: string) => {
+const COOLDOWN_PATH = 'cooldown/';
+
+export const addToCooldown = async (address: string): Promise<void> => {
     const now = Date.now();
-    const cooldownEnd = now + 24 * 60 * 60 * 1000; // Время окончания cooldown через 24 часа
-    await set(ref(database, 'cooldown/' + address), {
-        cooldownEnd
-    });
+    const cooldownEnd = now + 24 * 60 * 60 * 1000; // 24 часа
+    const cooldownRef: DatabaseReference = ref(database, `${COOLDOWN_PATH}${address}`);
+
+    try {
+        console.log(`Setting cooldown for address ${address} to ${cooldownEnd}`);
+        await set(cooldownRef, { cooldownEnd });
+        console.log(`Address ${address} added to cooldown.`);
+    } catch (error) {
+        console.error('Error adding to cooldown:', error);
+    }
 };
 
-// Функция для проверки, находится ли адрес в cooldown
+
 export const checkCooldown = async (address: string): Promise<boolean> => {
-    const snapshot = await get(ref(database, 'cooldown/' + address));
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        const now = Date.now();
-        return now < data.cooldownEnd;
+    const cooldownRef: DatabaseReference = ref(database, `${COOLDOWN_PATH}${address}`);
+
+    try {
+        const snapshot = await get(cooldownRef);
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            const cooldownEnd = data.cooldownEnd;
+            const now = Date.now();
+            return now < cooldownEnd;
+        }
+        return false;
+    } catch (error) {
+        console.error('Error checking cooldown:', error);
+        return false;
     }
-    return false;
 };

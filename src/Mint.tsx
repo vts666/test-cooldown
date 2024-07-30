@@ -33,10 +33,16 @@ export const Mint: React.FC = () => {
 
     useEffect(() => {
         const updateTimeLeft = async () => {
-            if (!userFriendlyAddress) return;
+            if (!userFriendlyAddress) {
+                console.log('No user address available.');
+                return;
+            }
 
             try {
+                console.log('Checking cooldown for address:', userFriendlyAddress);
                 const isOnCooldown = await checkCooldown(userFriendlyAddress);
+                console.log('Cooldown check result:', isOnCooldown);
+
                 if (isOnCooldown) {
                     const now = Date.now();
                     const snapshot = await get(ref(database, 'cooldown/' + userFriendlyAddress));
@@ -50,7 +56,7 @@ export const Mint: React.FC = () => {
                     setTimeLeft(0);
                 }
             } catch (error) {
-                console.error("Error checking cooldown:", error);
+                console.error('Error checking cooldown:', error);
             }
         };
 
@@ -58,7 +64,6 @@ export const Mint: React.FC = () => {
         updateTimeLeft();
         const interval = setInterval(updateTimeLeft, 1000);
 
-        // Clear interval on component unmount
         return () => clearInterval(interval);
     }, [userFriendlyAddress]);
 
@@ -83,7 +88,7 @@ export const Mint: React.FC = () => {
     return (
         <TonConnectUIProvider manifestUrl="https://tonconnect-test.vercel.app/tonconnect-manifest.json">
             <div>
-                {/* <span>{userFriendlyAddress}</span> */}
+                <span>{userFriendlyAddress}</span>
                 {wallet ? (
                     <button 
                         className={styles.button}

@@ -1,8 +1,7 @@
-// src/firebaseConfig.ts
-import { initializeApp } from "firebase/app";
-import { getDatabase, ref, set, get } from "firebase/database";
+import { initializeApp } from 'firebase/app';
+import { getDatabase, ref, set, get } from 'firebase/database';
 
-// Your web app's Firebase configuration
+// Ваши конфигурационные данные Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyCAsusEVulMVKCmgGdxpRMSto3cG3UBUu4",
   authDomain: "nft-cooldown.firebaseapp.com",
@@ -14,7 +13,7 @@ const firebaseConfig = {
   measurementId: "G-0ZEPH2PS1P"
 };
 
-// Initialize Firebase
+// Инициализация Firebase
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
