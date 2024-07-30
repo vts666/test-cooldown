@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, set, get } from 'firebase/database';
+import { getDatabase } from 'firebase/database';
 
 // Ваши конфигурационные данные Firebase
 const firebaseConfig = {
@@ -17,4 +17,4 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
-export { database, ref, set, get };
+export { database };
