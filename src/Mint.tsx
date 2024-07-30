@@ -51,7 +51,7 @@ export const Mint = () => {
   try {
     await tonConnectUi.sendTransaction(tx);
     // Temporarily remove Firebase call
-    // addAddressToCooldown(userFriendlyAddress);
+      addAddressToCooldown(userFriendlyAddress); // Add address to cooldown after successful transaction
   } catch (e) {
     setError(e.message); // Set the error message
   }
