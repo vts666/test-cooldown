@@ -59,14 +59,27 @@ export const Mint = () => {
   // Function to add address to Firebase
   const addAddressToCooldown = (address) => {
     const addressRef = ref(database, `cooldown/${address}`);
-    set(addressRef, {
-      timestamp: Date.now()
-    }).then(() => {
-      console.log('Address added to cooldown');
-    }).catch((error) => {
-      console.error('Error adding address to cooldown:', error);
-    });
+  
+    // Вместо рекурсии используем цикл, чтобы избежать потенциальной бесконечной рекурсии
+    let attempts = 0;
+    const maxAttempts = 5; // Максимальное количество попыток
+  
+    while (attempts < maxAttempts) {
+      set(addressRef, {
+        timestamp: Date.now()
+      })
+      .then(() => {
+        console.log('Address added to cooldown');
+        return; // Выходим из цикла при успехе
+      })
+      .catch((error) => {
+        console.error('Error adding address to cooldown:', error);
+      });
+  
+      attempts++;
+    }
   };
+      
 
   return (
     <TonConnectUIProvider manifestUrl="https://tonconnect-test.vercel.app/tonconnect-manifest.json">
