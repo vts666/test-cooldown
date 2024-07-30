@@ -76,22 +76,22 @@ export const Mint: React.FC = () => {
     }, [isCooldown, timeLeft]);
 
     const handleTransaction = async () => {
-        if (!userFriendlyAddress) return;
+        // ... остальной код функции
 
         try {
-            await tonConnectUi.sendTransaction(tx);
+            // ...
             await addToCooldown(userFriendlyAddress);
 
             setIsCooldown(true);
             setTimeLeft(24 * 60 * 60); // Устанавливаем время в 24 часа
 
-            setTimeout(() => {
-                setIsCooldown(true);
-            }, 2000);
+            // Удалите эту строку, если она вызывает бесконечную рекурсию
+            // setTimeout(() => {
+            //     setIsCooldown(true);
+            // }, 2000);
         } catch (e) {
-            setError(e instanceof Error ? e.message : 'Unknown error');
-        }
-    };
+            // ...
+        }}
 
     const formatTimeLeft = (seconds: number): string => {
         const hours = Math.floor(seconds / 3600);
