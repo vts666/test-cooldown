@@ -4,7 +4,8 @@ import { beginCell } from '@ton/ton';
 import { TonConnectUIProvider, useTonConnectUI, useTonWallet, useTonAddress } from '@tonconnect/ui-react';
 import { addToCooldown, checkCooldown } from './firebaseFunctions'; // Импортируйте функции
 import styles from './Button.module.css'; // Импортируйте стили
-import { ref, set, get, database } from './firebaseConfig';
+import { database } from './firebaseConfig';
+import { ref, get } from 'firebase/database';
 
 const body = beginCell()
     .storeUint(0, 32)
@@ -31,39 +32,35 @@ export const Mint: React.FC = () => {
 
     const [timeLeft, setTimeLeft] = useState<number>(0);
     const [isCooldown, setIsCooldown] = useState<boolean>(false);
-    const [hasCheckedCooldown, setHasCheckedCooldown] = useState<boolean>(false); // Флаг для проверки cooldown
 
     useEffect(() => {
         const initializeCooldown = async () => {
             if (!userFriendlyAddress) return;
 
             try {
-                if (!hasCheckedCooldown) {
-                    const isOnCooldown = await checkCooldown(userFriendlyAddress);
-                    setIsCooldown(isOnCooldown);
-                    setHasCheckedCooldown(true); // Устанавливаем флаг проверки cooldown
+                const isOnCooldown = await checkCooldown(userFriendlyAddress);
+                setIsCooldown(isOnCooldown);
 
-                    if (isOnCooldown) {
-                        const snapshot = await get(ref(database, `cooldown/${userFriendlyAddress}`));
-                        if (snapshot.exists()) {
-                            const data = snapshot.val();
-                            const cooldownEnd = data.cooldownEnd;
-                            const now = Date.now();
-                            const remainingTime = Math.max(0, Math.floor((cooldownEnd - now) / 1000)); // Оставшееся время в секундах
-                            setTimeLeft(remainingTime);
-                        }
+                if (isOnCooldown) {
+                    const snapshot = await get(ref(database, `cooldown/${userFriendlyAddress}`));
+                    if (snapshot.exists()) {
+                        const data = snapshot.val();
+                        const cooldownEnd = data.cooldownEnd;
+                        const now = Date.now();
+                        const remainingTime = Math.max(0, Math.floor((cooldownEnd - now) / 1000)); // Оставшееся время в секундах
+                        setTimeLeft(remainingTime);
                     }
                 }
             } catch (error) {
-                console.error('Error initializing cooldown:', error);
+                console.error('Error checking cooldown:', error);
             }
         };
 
         initializeCooldown();
-    }, [userFriendlyAddress, hasCheckedCooldown]);
+    }, [userFriendlyAddress]);
 
     useEffect(() => {
-        let timer: NodeJS.Timeout;
+        let timer: NodeJS.Timeout | undefined;
 
         if (isCooldown && timeLeft > 0) {
             timer = setInterval(() => {
@@ -71,7 +68,9 @@ export const Mint: React.FC = () => {
             }, 1000);
         }
 
-        return () => clearInterval(timer);
+        return () => {
+            if (timer) clearInterval(timer);
+        };
     }, [isCooldown, timeLeft]);
 
     const handleTransaction = async () => {
@@ -80,14 +79,13 @@ export const Mint: React.FC = () => {
         try {
             await tonConnectUi.sendTransaction(tx);
             await addToCooldown(userFriendlyAddress); // Добавить адрес в cooldown
-            
+
             // Обновляем состояние кнопки для отображения cooldown
             setIsCooldown(true);
             setTimeLeft(24 * 60 * 60); // Устанавливаем время в 24 часа
 
             // Установка задержки в 2 секунды перед обновлением состояния
             setTimeout(() => {
-                // Обновление состояния компонента без перезагрузки страницы
                 setIsCooldown(true);
             }, 2000);
         } catch (e) {
