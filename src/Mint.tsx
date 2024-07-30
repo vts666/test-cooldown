@@ -76,6 +76,15 @@ export const Mint: React.FC = () => {
         try {
             await tonConnectUi.sendTransaction(tx);
             await addToCooldown(userFriendlyAddress); // Добавить адрес в cooldown
+            
+            // Установка задержки в 2 секунды перед перезагрузкой страницы
+            // setTimeout(() => {
+            //     window.location.reload(); // Перезагрузить страницу после задержки
+            // }, 2000);
+
+            // Обновляем состояние кнопки для отображения cooldown
+            setIsCooldown(true);
+            setTimeLeft(24 * 60 * 60); // Устанавливаем время в 24 часа
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Unknown error');
         }
@@ -98,7 +107,7 @@ export const Mint: React.FC = () => {
                         onClick={handleTransaction}
                         disabled={isCooldown && timeLeft > 0} // Disable button if in cooldown
                     >
-                        {isCooldown ? `Cooldown: ${formatTimeLeft(timeLeft)}` : 'Mint'}
+                        {isCooldown && timeLeft > 0 ? `Cooldown: ${formatTimeLeft(timeLeft)}` : 'Mint'}
                     </button>
                 ) : (
                     <button 
