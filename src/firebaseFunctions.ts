@@ -1,5 +1,5 @@
 import { ref, set, get, DatabaseReference } from 'firebase/database';
-import { database } from './firebaseConfig';
+import { database } from './firebaseConfig'; // Убедитесь, что путь правильный
 
 const COOLDOWN_PATH = 'cooldown/';
 

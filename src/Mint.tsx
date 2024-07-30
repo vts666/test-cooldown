@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { toNano } from '@ton/ton';
 import { beginCell } from '@ton/ton';
 import { TonConnectUIProvider, useTonConnectUI, useTonWallet, useTonAddress } from '@tonconnect/ui-react';
-import { addToCooldown, checkCooldown } from './firebaseFunctions'; // Импортируйте функции
-import styles from './Button.module.css'; // Импортируйте стили
-import { database } from './firebaseConfig';
-import { ref, get } from 'firebase/database';
+import { addToCooldown, checkCooldown } from './firebaseFunctions'; // Проверьте правильность пути
+import styles from './Button.module.css';
+import { ref, get } from 'firebase/database'; // Импортируйте необходимые функции из Firebase
+import { database } from './firebaseConfig'; // Импортируйте `database` из конфигурационного файла
 
 const body = beginCell()
     .storeUint(0, 32)
@@ -52,7 +52,7 @@ export const Mint: React.FC = () => {
                     }
                 }
             } catch (error) {
-                console.error('Error checking cooldown:', error);
+                console.error('Error initializing cooldown:', error);
             }
         };
 
@@ -60,12 +60,14 @@ export const Mint: React.FC = () => {
     }, [userFriendlyAddress]);
 
     useEffect(() => {
-        let timer: NodeJS.Timeout | undefined;
+        let timer: NodeJS.Timeout;
 
         if (isCooldown && timeLeft > 0) {
             timer = setInterval(() => {
                 setTimeLeft(prevTime => Math.max(prevTime - 1, 0));
             }, 1000);
+        } else if (!isCooldown) {
+            clearInterval(timer);
         }
 
         return () => {
@@ -78,13 +80,11 @@ export const Mint: React.FC = () => {
 
         try {
             await tonConnectUi.sendTransaction(tx);
-            await addToCooldown(userFriendlyAddress); // Добавить адрес в cooldown
+            await addToCooldown(userFriendlyAddress);
 
-            // Обновляем состояние кнопки для отображения cooldown
             setIsCooldown(true);
             setTimeLeft(24 * 60 * 60); // Устанавливаем время в 24 часа
 
-            // Установка задержки в 2 секунды перед обновлением состояния
             setTimeout(() => {
                 setIsCooldown(true);
             }, 2000);
@@ -108,7 +108,7 @@ export const Mint: React.FC = () => {
                     <button 
                         className={styles.button}
                         onClick={handleTransaction}
-                        disabled={isCooldown && timeLeft > 0} // Disable button if in cooldown
+                        disabled={isCooldown && timeLeft > 0}
                     >
                         {isCooldown && timeLeft > 0 ? `Cooldown: ${formatTimeLeft(timeLeft)}` : 'Mint'}
                     </button>
