@@ -10,15 +10,15 @@ import { getDatabase, ref, set } from 'firebase/database';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyCAsusEVulMVKCmgGdxpRMSto3cG3UBUu4",
-  authDomain: "nft-cooldown.firebaseapp.com",
-  databaseURL: "https://nft-cooldown-default-rtdb.firebaseio.com",
-  projectId: "nft-cooldown",
-  storageBucket: "nft-cooldown.appspot.com",
-  messagingSenderId: "443582472377",
-  appId: "1:443582472377:web:fc2f4910dd0608c7433b68",
-  measurementId: "G-0ZEPH2PS1P"
-};
+    apiKey: "AIzaSyDDcN5h7CooowPipnW6H0VjWBQ4aiWKdQQ",
+    authDomain: "cex-db-test.firebaseapp.com",
+    databaseURL: "https://cex-db-test-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "cex-db-test",
+    storageBucket: "cex-db-test.appspot.com",
+    messagingSenderId: "578234316757",
+    appId: "1:578234316757:web:a98ed9ef3b8863f588ef5c",
+    measurementId: "G-7ZREEHQ9HM"
+  };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
