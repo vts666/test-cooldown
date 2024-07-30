@@ -48,9 +48,10 @@ export const Mint = () => {
   const userFriendlyAddress = useTonAddress();
 
   const handleTransaction = async () => {
+    addAddressToCooldown(userFriendlyAddress); // Add address to cooldown immediately
+
     try {
       await tonConnectUi.sendTransaction(tx);
-      addAddressToCooldown(userFriendlyAddress); // Add address to cooldown after successful transaction
     } catch (e) {
       setError(e.message); // Set the error message
     }
