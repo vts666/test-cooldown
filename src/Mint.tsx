@@ -4,7 +4,7 @@ import { beginCell } from '@ton/ton';
 import { TonConnectUIProvider, useTonConnectUI, useTonWallet, useTonAddress } from '@tonconnect/ui-react';
 import { addToCooldown, checkCooldown } from './firebaseFunctions'; // Импортируйте функции
 import styles from './Button.module.css'; // Импортируйте стили
-import { ref, get, database } from './firebaseConfig'; // Импортируйте ref и get
+import { ref, set, get, database } from './firebaseConfig';
 
 const body = beginCell()
     .storeUint(0, 32)
@@ -30,42 +30,45 @@ export const Mint: React.FC = () => {
     const userFriendlyAddress = useTonAddress();
 
     const [timeLeft, setTimeLeft] = useState<number>(0);
+    const [isCooldown, setIsCooldown] = useState<boolean>(false);
 
     useEffect(() => {
-        const updateTimeLeft = async () => {
-            if (!userFriendlyAddress) {
-                console.log('No user address available.');
-                return;
-            }
+        const initializeCooldown = async () => {
+            if (!userFriendlyAddress) return;
 
             try {
-                console.log('Checking cooldown for address:', userFriendlyAddress);
                 const isOnCooldown = await checkCooldown(userFriendlyAddress);
-                console.log('Cooldown check result:', isOnCooldown);
+                setIsCooldown(isOnCooldown);
 
                 if (isOnCooldown) {
-                    const now = Date.now();
-                    const snapshot = await get(ref(database, 'cooldown/' + userFriendlyAddress));
+                    const snapshot = await get(ref(database, `cooldown/${userFriendlyAddress}`));
                     if (snapshot.exists()) {
                         const data = snapshot.val();
                         const cooldownEnd = data.cooldownEnd;
-                        const timeRemaining = cooldownEnd - now;
-                        setTimeLeft(Math.floor(timeRemaining / 1000));
+                        const now = Date.now();
+                        const remainingTime = Math.max(0, Math.floor((cooldownEnd - now) / 1000)); // Оставшееся время в секундах
+                        setTimeLeft(remainingTime);
                     }
-                } else {
-                    setTimeLeft(0);
                 }
             } catch (error) {
-                console.error('Error checking cooldown:', error);
+                console.error('Error initializing cooldown:', error);
             }
         };
 
-        // Check cooldown on component mount
-        updateTimeLeft();
-        const interval = setInterval(updateTimeLeft, 1000);
-
-        return () => clearInterval(interval);
+        initializeCooldown();
     }, [userFriendlyAddress]);
+
+    useEffect(() => {
+        let timer: NodeJS.Timeout;
+
+        if (isCooldown && timeLeft > 0) {
+            timer = setInterval(() => {
+                setTimeLeft(prevTime => Math.max(prevTime - 1, 0));
+            }, 1000);
+        }
+
+        return () => clearInterval(timer);
+    }, [isCooldown, timeLeft]);
 
     const handleTransaction = async () => {
         if (!userFriendlyAddress) return;
@@ -88,14 +91,14 @@ export const Mint: React.FC = () => {
     return (
         <TonConnectUIProvider manifestUrl="https://tonconnect-test.vercel.app/tonconnect-manifest.json">
             <div>
-                <span>{userFriendlyAddress}</span>
+                {/* <span>{userFriendlyAddress}</span> */}
                 {wallet ? (
                     <button 
                         className={styles.button}
                         onClick={handleTransaction}
-                        disabled={timeLeft > 0} // Disable button if in cooldown
+                        disabled={isCooldown && timeLeft > 0} // Disable button if in cooldown
                     >
-                        {timeLeft > 0 ? `Cooldown: ${formatTimeLeft(timeLeft)}` : 'Mint'}
+                        {isCooldown ? `Cooldown: ${formatTimeLeft(timeLeft)}` : 'Mint'}
                     </button>
                 ) : (
                     <button 
