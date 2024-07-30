@@ -33,7 +33,7 @@ const myTransaction = {
   validUntil: Math.floor(Date.now() / 1000) + 360,
   messages: [
     {
-      address: 'kQAkmmMzTgphBGpvDOrs_o2yKQZwOr0IkPQXNVY1XVKm81TV',
+      address: process.env.NEXT_PUBLIC_CONTRACT,
       amount: toNano(0.15).toString(),
       payload: body.toBoc().toString("base64") // payload with comment in body
     }
@@ -59,27 +59,14 @@ export const Mint = () => {
   // Function to add address to Firebase
   const addAddressToCooldown = (address) => {
     const addressRef = ref(database, `cooldown/${address}`);
-  
-    // Вместо рекурсии используем цикл, чтобы избежать потенциальной бесконечной рекурсии
-    let attempts = 0;
-    const maxAttempts = 5; // Максимальное количество попыток
-  
-    while (attempts < maxAttempts) {
-      set(addressRef, {
-        timestamp: Date.now()
-      })
-      .then(() => {
-        console.log('Address added to cooldown');
-        return; // Выходим из цикла при успехе
-      })
-      .catch((error) => {
-        console.error('Error adding address to cooldown:', error);
-      });
-  
-      attempts++;
-    }
+    set(addressRef, {
+      timestamp: Date.now()
+    }).then(() => {
+      console.log('Address added to cooldown');
+    }).catch((error) => {
+      console.error('Error adding address to cooldown:', error);
+    });
   };
-      
 
   return (
     <TonConnectUIProvider manifestUrl="https://tonconnect-test.vercel.app/tonconnect-manifest.json">
