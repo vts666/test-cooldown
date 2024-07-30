@@ -1,5 +1,5 @@
-import { ref, set, get, database } from './firebaseConfig';
-import { DatabaseReference } from 'firebase/database';
+import { ref, set, get, DatabaseReference } from 'firebase/database';
+import { database } from './firebaseConfig';
 
 const COOLDOWN_PATH = 'cooldown/';
 
@@ -16,7 +16,6 @@ export const addToCooldown = async (address: string): Promise<void> => {
         console.error('Error adding to cooldown:', error);
     }
 };
-
 
 export const checkCooldown = async (address: string): Promise<boolean> => {
     const cooldownRef: DatabaseReference = ref(database, `${COOLDOWN_PATH}${address}`);
