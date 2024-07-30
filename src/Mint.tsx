@@ -1,15 +1,14 @@
-// src/components/Mint.tsx
 import React, { useState, useEffect } from 'react';
 import { toNano } from '@ton/ton';
 import { beginCell } from '@ton/ton';
 import { TonConnectUIProvider, useTonConnectUI, useTonWallet, useTonAddress } from '@tonconnect/ui-react';
 import { addToCooldown, checkCooldown } from './firebaseFunctions'; // Импортируйте функции
 import styles from './Button.module.css'; // Импортируйте стили
-import { database, ref, set, get } from './firebaseConfig';
+import { ref, get, database } from './firebaseConfig'; // Импортируйте ref и get
 
 const body = beginCell()
-    .storeUint(0, 32) // write 32 zero bits to indicate that a text comment will follow
-    .storeStringTail("MintRandom") // write our text comment
+    .storeUint(0, 32)
+    .storeStringTail("MintRandom")
     .endCell();
 
 const myTransaction = {
@@ -18,7 +17,7 @@ const myTransaction = {
         {
             address: process.env.NEXT_PUBLIC_CONTRACT!,
             amount: toNano(0.15).toString(),
-            payload: body.toBoc().toString("base64") // payload with comment in body
+            payload: body.toBoc().toString("base64")
         }
     ]
 };
@@ -36,20 +35,26 @@ export const Mint: React.FC = () => {
         const updateTimeLeft = async () => {
             if (!userFriendlyAddress) return;
 
-            const isOnCooldown = await checkCooldown(userFriendlyAddress);
-            if (isOnCooldown) {
-                const now = Date.now();
-                const snapshot = await get(ref(database, 'cooldown/' + userFriendlyAddress));
-                const data = snapshot.val();
-                const cooldownEnd = data.cooldownEnd;
-                const timeRemaining = cooldownEnd - now;
-                setTimeLeft(Math.floor(timeRemaining / 1000));
-            } else {
-                setTimeLeft(0);
+            try {
+                const isOnCooldown = await checkCooldown(userFriendlyAddress);
+                if (isOnCooldown) {
+                    const now = Date.now();
+                    const snapshot = await get(ref(database, 'cooldown/' + userFriendlyAddress));
+                    if (snapshot.exists()) {
+                        const data = snapshot.val();
+                        const cooldownEnd = data.cooldownEnd;
+                        const timeRemaining = cooldownEnd - now;
+                        setTimeLeft(Math.floor(timeRemaining / 1000));
+                    }
+                } else {
+                    setTimeLeft(0);
+                }
+            } catch (error) {
+                console.error("Error checking cooldown:", error);
             }
         };
 
-        // Check cooldown on component mount and every second
+        // Check cooldown on component mount
         updateTimeLeft();
         const interval = setInterval(updateTimeLeft, 1000);
 
@@ -58,11 +63,11 @@ export const Mint: React.FC = () => {
     }, [userFriendlyAddress]);
 
     const handleTransaction = async () => {
+        if (!userFriendlyAddress) return;
+
         try {
             await tonConnectUi.sendTransaction(tx);
-            if (userFriendlyAddress) {
-                await addToCooldown(userFriendlyAddress); // Добавить адрес в cooldown
-            }
+            await addToCooldown(userFriendlyAddress); // Добавить адрес в cooldown
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Unknown error');
         }
