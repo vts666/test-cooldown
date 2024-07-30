@@ -1,131 +1,97 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { toNano } from '@ton/ton';
 import { beginCell } from '@ton/ton';
 import { TonConnectUIProvider, useTonConnectUI, useTonWallet, useTonAddress } from '@tonconnect/ui-react';
-import { addToCooldown, checkCooldown } from './firebaseFunctions'; // Проверьте правильность пути
-import styles from './Button.module.css';
-import { ref, get } from 'firebase/database'; // Импортируйте необходимые функции из Firebase
-import { database } from './firebaseConfig'; // Импортируйте `database` из конфигурационного файла
+import styles from './Button.module.css'; // Import button styles
 
-const body = beginCell()
-    .storeUint(0, 32)
-    .storeStringTail("MintRandom")
-    .endCell();
+// Firebase imports
+import { initializeApp } from 'firebase/app';
+import { getDatabase, ref, set } from 'firebase/database';
 
-const myTransaction = {
-    validUntil: Math.floor(Date.now() / 1000) + 360,
-    messages: [
-        {
-            address: process.env.NEXT_PUBLIC_CONTRACT!,
-            amount: toNano(0.15).toString(),
-            payload: body.toBoc().toString("base64")
-        }
-    ]
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyCAsusEVulMVKCmgGdxpRMSto3cG3UBUu4",
+  authDomain: "nft-cooldown.firebaseapp.com",
+  databaseURL: "https://nft-cooldown-default-rtdb.firebaseio.com",
+  projectId: "nft-cooldown",
+  storageBucket: "nft-cooldown.appspot.com",
+  messagingSenderId: "443582472377",
+  appId: "1:443582472377:web:fc2f4910dd0608c7433b68",
+  measurementId: "G-0ZEPH2PS1P"
 };
 
-export const Mint: React.FC = () => {
-    const [error, setError] = useState<string | null>(null);
-    const [tonConnectUi] = useTonConnectUI();
-    const [tx] = useState(myTransaction);
-    const wallet = useTonWallet();
-    const userFriendlyAddress = useTonAddress();
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
 
-    const [timeLeft, setTimeLeft] = useState<number>(0);
-    const [isCooldown, setIsCooldown] = useState<boolean>(false);
+const body = beginCell()
+  .storeUint(0, 32) // write 32 zero bits to indicate that a text comment will follow
+  .storeStringTail("MintRandom") // write our text comment
+  .endCell();
 
-    useEffect(() => {
-        const initializeCooldown = async () => {
-            if (!userFriendlyAddress) return;
+const myTransaction = {
+  validUntil: Math.floor(Date.now() / 1000) + 360,
+  messages: [
+    {
+      address: process.env.NEXT_PUBLIC_CONTRACT,
+      amount: toNano(0.15).toString(),
+      payload: body.toBoc().toString("base64") // payload with comment in body
+    }
+  ]
+};
 
-            try {
-                const isOnCooldown = await checkCooldown(userFriendlyAddress);
-                setIsCooldown(isOnCooldown);
+export const Mint = () => {
+  const [error, setError] = useState(null); // Add state for errors
+  const [tonConnectUi] = useTonConnectUI();
+  const [tx] = useState(myTransaction);
+  const wallet = useTonWallet();
+  const userFriendlyAddress = useTonAddress();
 
-                if (isOnCooldown) {
-                    const snapshot = await get(ref(database, `cooldown/${userFriendlyAddress}`));
-                    if (snapshot.exists()) {
-                        const data = snapshot.val();
-                        const cooldownEnd = data.cooldownEnd;
-                        const now = Date.now();
-                        const remainingTime = Math.max(0, Math.floor((cooldownEnd - now) / 1000)); // Оставшееся время в секундах
-                        setTimeLeft(remainingTime);
-                    }
-                }
-            } catch (error) {
-                console.error('Error initializing cooldown:', error);
-            }
-        };
+  const handleTransaction = async () => {
+    try {
+      await tonConnectUi.sendTransaction(tx);
+      addAddressToCooldown(userFriendlyAddress); // Add address to cooldown after successful transaction
+    } catch (e) {
+      setError(e.message); // Set the error message
+    }
+  };
 
-        initializeCooldown();
-    }, [userFriendlyAddress]);
+  // Function to add address to Firebase
+  const addAddressToCooldown = (address) => {
+    const addressRef = ref(database, `cooldown/${address}`);
+    set(addressRef, {
+      timestamp: Date.now()
+    }).then(() => {
+      console.log('Address added to cooldown');
+    }).catch((error) => {
+      console.error('Error adding address to cooldown:', error);
+    });
+  };
 
-    useEffect(() => {
-        let timer: NodeJS.Timeout;
-
-        if (isCooldown && timeLeft > 0) {
-            timer = setInterval(() => {
-                setTimeLeft(prevTime => Math.max(prevTime - 1, 0));
-            }, 1000);
-        } else if (!isCooldown) {
-            clearInterval(timer);
-        }
-
-        return () => {
-            if (timer) clearInterval(timer);
-        };
-    }, [isCooldown, timeLeft]);
-
-    const handleTransaction = async () => {
-        // ... остальной код функции
-
-        try {
-            // ...
-            await addToCooldown(userFriendlyAddress);
-
-            setIsCooldown(true);
-            setTimeLeft(24 * 60 * 60); // Устанавливаем время в 24 часа
-
-            // Удалите эту строку, если она вызывает бесконечную рекурсию
-            // setTimeout(() => {
-            //     setIsCooldown(true);
-            // }, 2000);
-        } catch (e) {
-            // ...
-        }}
-
-    const formatTimeLeft = (seconds: number): string => {
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        const secs = seconds % 60;
-        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    };
-
-    return (
-        <TonConnectUIProvider manifestUrl="https://tonconnect-test.vercel.app/tonconnect-manifest.json">
-            <div>
-                <span>{userFriendlyAddress}</span>
-                {wallet ? (
-                    <button 
-                        className={styles.button}
-                        onClick={handleTransaction}
-                        disabled={isCooldown && timeLeft > 0}
-                    >
-                        {isCooldown && timeLeft > 0 ? `Cooldown: ${formatTimeLeft(timeLeft)}` : 'Mint'}
-                    </button>
-                ) : (
-                    <button 
-                        className={styles.button}
-                        onClick={() => tonConnectUi.openModal()}
-                    >
-                        Connect Wallet
-                    </button>
-                )}
-                {error && (
-                    <div className="error-message">
-                        {error}
-                    </div>
-                )}
-            </div>
-        </TonConnectUIProvider>
-    );
+  return (
+    <TonConnectUIProvider manifestUrl="https://tonconnect-test.vercel.app/tonconnect-manifest.json">
+      <div>
+        {wallet ? (
+          <button 
+            className={styles.button}
+            onClick={handleTransaction}
+          >
+            Mint
+          </button>
+        ) : (
+          <button 
+            className={styles.button}
+            onClick={() => tonConnectUi.openModal()}
+          >
+            Connect Wallet
+          </button>
+        )}
+        {error && (
+          <div className="error-message">
+            {error}
+          </div>
+        )}
+      </div>
+    </TonConnectUIProvider>
+  );
 };
